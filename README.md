@@ -1,7 +1,7 @@
   
 Opsschool 2020 Final Project overview,
 
-The goal of the project is to create a HA infrastructure on AWS Cloud,  build docker image from code in GitHub repo, push the image to DockerHub and deploy it to kubernetes cluster.
+The goal of the project is to create a HA infrastructure on AWS Cloud (NOT for Prod USE!!!) to support deployment of a simple Flask application in an automated fashion using CI/CD.
 
 Prerequisites
 
@@ -17,12 +17,12 @@ Prerequisites
 Result:
 
     1 new VPC, 4 subnets (2 private, 2 public), 1 IG, 2 security groups (1 private, 1 public). All in 2 availability zones.
-    1 jenkins master + 1 jenkins node
-    K8s Cluster
+    1 Jenkins master + 1 Jenkins slave
+    K8s Cluster - EKS
     3 Consul servers
     1 mySQL server
-    1 monitoring server for Grafana and Prometeus
-    1 ELK server for Elastic and Kibana
+    1 monitoring server - Grafana and Prometeus
+    1 ELK server - Elastic and Kibana
 
 
 
