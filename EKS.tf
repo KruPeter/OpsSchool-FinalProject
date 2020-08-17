@@ -1,0 +1,133 @@
+terraform {
+  required_version = ">= 0.12.0"
+}
+
+provider "aws" {
+  version = ">= 2.28.1"
+  region  = "us-east-1"
+}
+
+provider "random" {
+  version = "~> 2.1"
+}
+
+provider "local" {
+  version = "~> 1.2"
+}
+
+provider "null" {
+  version = "~> 2.1"
+}
+
+provider "template" {
+  version = "~> 2.1"
+}
+
+data "aws_eks_cluster" "cluster" {
+  name = module.eks.cluster_id
+}
+
+data "aws_eks_cluster_auth" "cluster" {
+  name = module.eks.cluster_id
+}
+
+provider "kubernetes" {
+  host                   = data.aws_eks_cluster.cluster.endpoint
+  cluster_ca_certificate = base64decode(data.aws_eks_cluster.cluster.certificate_authority.0.data)
+  token                  = data.aws_eks_cluster_auth.cluster.token
+  load_config_file       = false
+  version                = "~> 1.10"
+}
+
+data "aws_availability_zones" "available" {
+}
+
+locals {
+  cluster_name = "opsSchool-eks-project"
+}
+
+# CIDR will be "My IP" \ all Ips from which you need to access the worker nodes
+resource "aws_security_group" "worker_group_mgmt_one" {
+  name_prefix = "worker_group_mgmt_one"
+  vpc_id      = var.vpc_id
+
+  ingress {
+    from_port = 22
+    to_port   = 22
+    protocol  = "tcp"
+
+    cidr_blocks = [
+      var.ip,
+      "10.0.0.0/8",
+      # "10.0.1.0/24",
+      # "10.0.6.0/24",
+      # "10.0.7.0/24"
+    ]
+  }
+
+# HTTP access from anywhere
+  ingress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all outside security group"
+  }
+}
+
+resource "aws_security_group" "all_worker_mgmt" {
+  name_prefix = "all_worker_management"
+  vpc_id      = var.vpc_id
+
+  ingress {
+    from_port = 22
+    to_port   = 22
+    protocol  = "tcp"
+
+    cidr_blocks = [
+      "10.0.0.0/8",
+      "172.16.0.0/12",
+      "192.168.0.0/16",
+    ]
+  }
+}
+
+
+module "eks" {
+  source       = "terraform-aws-modules/eks/aws"
+  cluster_name = local.cluster_name
+  #TODO Ssbnet id
+  subnets      = "${aws_subnet.public.*.id}"
+
+  tags = {
+    Environment = "Ops-Project"
+    GithubRepo  = "terraform-aws-eks"
+    GithubOrg   = "terraform-aws-modules"
+  }
+
+  vpc_id = var.vpc_id
+
+  # TODO Worker group 1
+  # One Subnet
+  worker_groups = [
+    {
+      name                          = "worker-group-1"
+      instance_type                 = "t2.micro"
+      # additional_userdata           = "echo foo bar"
+      asg_desired_capacity          = 2
+      asg_max_size                  = 2
+      additional_security_group_ids = [aws_security_group.worker_group_mgmt_one.id] #aws_security_group.project_consul.id,
+      #aws_security_group.monitoring_sg.id]
+    }
+  ]
+
+  worker_additional_security_group_ids = [aws_security_group.all_worker_mgmt.id]
+  }
+}

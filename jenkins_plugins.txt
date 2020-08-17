@@ -1,0 +1,7 @@
+jenkins plugins:
+1. pipeline-build-step:latest
+2. ssh-slaves:1.31.2
+3. build-monitor-plugin:latest
+4. slack:2.40
+5. pipeline-aws:latest
+6. github:latest
