@@ -50,3 +50,9 @@ To get logon to different EC2's instances in privet subnets:
 
     ssh to the EC2 instance using key.pem (ssh -i "key.pem" -F ssh_config ubuntu@<IP>)
 
+To bring everything down:
+
+    cd into the terraform/..../VPC dir and run:
+    terraform destroy
+    
+    
