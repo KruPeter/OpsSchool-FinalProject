@@ -23,7 +23,7 @@ variable "subnets_cidr_private" {
 }
 
 variable "ip" {
-  default = "79.177.204.194/32"
+  default = ""
   description = "my public ip"
 }
 
