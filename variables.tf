@@ -1,20 +1,30 @@
-terraform {
-  required_version = ">= 0.12.0"
-}
-
 variable "aws_region" {
   description = "AWS region"
   default     = "us-east-1"
 }
 
-variable vpc_id {
-  description = "AWS VPC id"
-  default     = "my VPC"
+variable "vpc_cidr" {
+	default = "10.0.0.0/16"
+}
+
+variable "azs" {
+	type = list
+	default = ["us-east-1a", "us-east-1b"]
+}
+
+variable "subnets_cidr_public" {
+	type = list
+	default = ["10.0.1.0/24", "10.0.2.0/24"]
+}
+
+variable "subnets_cidr_private" {
+  type = list
+  default = ["10.0.3.0/24", "10.0.4.0/24"]
 }
 
 variable "ip" {
-  default = "my IP"
-  description = "my private ip"
+  default = "79.177.204.194/32"
+  description = "my public ip"
 }
 
 variable "servers" {
@@ -64,13 +74,3 @@ variable "apache_exporter_version" {
   description = "Apache Exporter version"
   default = "0.7.0"
 }
-
-# variable "elastic_user" {
-#   type        = string
-#   description = "Elastic username"
-# }
-
-# variable "elastic_password" {
-#   type        = string
-#   description = "Elastic password"
-# }

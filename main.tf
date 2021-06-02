@@ -1,97 +1,113 @@
+# Requirements
+terraform {
+  required_version = ">= 0.12.0"
+}
+
+provider "random" {
+  version = "~> 2.1"
+}
+
+provider "local" {
+  version = "~> 1.2"
+}
+
+provider "null" {
+  version = "~> 2.1"
+}
+
+provider "template" {
+  version = "~> 2.1"
+}
+
 # Setup the region in which to work.
 provider "aws" {
     region = var.aws_region
 }
 
-# Create a VPC to run our system in
-
+# Create a VPC
 resource "aws_vpc" "VPC_Project" {
-  cidr_block           = "10.0.0.0/16"
-  instance_tenancy     = "default"
-  enable_dns_hostnames = "true"
-  enable_dns_support   = "true"
+  cidr_block           = var.vpc_cidr
+  # instance_tenancy     = default
+  enable_dns_hostnames = true
+  # enable_dns_support   = true
 
   tags = {
 	Name = "Terraform_VPC"
   }
 }
 
-# Take the list of availability zones
-data "aws_availability_zones" "available" {}
-
-data "aws_ami" "ubuntu" {
-  most_recent = true
-
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-bionic-18.04-amd64-server-*"]
+# Internet Gateway
+resource "aws_internet_gateway" "IG_main" {
+  vpc_id = aws_vpc.VPC_Project.id
+  tags = {
+    Name = "tf-cluster-main-gw"
   }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-
-  owners = ["099720109477"] # Canonical
 }
 
-resource "aws_internet_gateway" "IG_main" {
-  vpc_id = "${aws_vpc.VPC_Project.id}"
+# Subnets : private
+resource "aws_subnet" "private" {
+  count                = length(var.subnets_cidr_private)
+  vpc_id               = aws_vpc.VPC_Project.id
+  cidr_block           = element(var.subnets_cidr_private,count.index)
+  availability_zone    = element(var.azs, count.index)
+  tags = {
+    Name = "Subnet-private-${count.index+1}"
+  }
+}
+
+# Subnets : public
+resource "aws_subnet" "public" {
+  count                      = length(var.subnets_cidr_public)
+  vpc_id                     = aws_vpc.VPC_Project.id
+  cidr_block                 = element(var.subnets_cidr_public,count.index)
+  availability_zone          = element(var.azs, count.index)
+  # map_public_ip_on_launch    = true
+  tags = {
+    Name = "Subnet-public-${count.index+1}"
+  }
+}
+
+# Create public route table
+resource "aws_route_table" "public_rt" {
+  vpc_id = aws_vpc.VPC_Project.id
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.IG_main.id
+  }
+  tags = {
+    Name = "publicRouteTable"
+  }
+}
+
+# Route table association with public subnets
+resource "aws_route_table_association" "public" {
+  count          = length(var.subnets_cidr_public)
+  subnet_id      = element(aws_subnet.public.*.id, count.index)
+  route_table_id = aws_route_table.public_rt.id
+}
+
+# Create private route tables
+resource "aws_route_table" "private_rt" {
+  vpc_id = aws_vpc.VPC_Project.id
+
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.gw.id
+  }
 
   tags = {
-    Name = "tf-cluster-1-main-gw"
+    Name    = "privetRouteTable"
+    Service = "nat"
+  }
+
+  lifecycle {
+    create_before_destroy = true
   }
 }
 
-# Create an IAM role for the auto-join
-resource "aws_iam_role" "consul-join" {
-  name               = "project-consul-join"
-  assume_role_policy = "${file("${path.module}/templates/policies/assume-role.json")}"
-}
-
-# Create an IAM policy
-resource "aws_iam_policy" "consul-join" {
-  name        = "project-consul-join"
-  description = "Allows Consul nodes to describe instances for joining."
-  policy      = "${file("${path.module}/templates/policies/describe-instances.json")}"
-}
-
-# Attach the policy
-resource "aws_iam_policy_attachment" "consul-join" {
-  name       = "project-consul-join"
-  roles      = ["${aws_iam_role.consul-join.name}"]
-  policy_arn = "${aws_iam_policy.consul-join.arn}"
-}
-
-# Create the instance profile
-resource "aws_iam_instance_profile" "consul-join" {
-  name  = "project-consul-join"
-  role = "${aws_iam_role.consul-join.name}"
-}
-
-
-# Create an IAM role for eks kubectl
-resource "aws_iam_role" "eks-kubectl" {
-  name               = "opsschool-eks-kubectl"
-  assume_role_policy = "${file("${path.module}/templates/policies/assume-role.json")}"
-}
-
-# Create the policy
-resource "aws_iam_policy" "eks-kubectl" {
-  name        = "opsschool-eks-kubectl"
-  description = "Allows unubtu node to run kubectl."
-  policy      = "${file("${path.module}/templates/policies/describe-eks.json")}"
-}
-
-# Attach the policy
-resource "aws_iam_policy_attachment" "eks-kubectl" {
-  name       = "opsschool-eks-kubectl"
-  roles      = ["${aws_iam_role.eks-kubectl.name}"]
-  policy_arn = "${aws_iam_policy.eks-kubectl.arn}"
-}
-
-# Create the instance profile
-resource "aws_iam_instance_profile" "eks-kubectl" {
-  name = "opsschool-eks-kubectl"
-  role = "${aws_iam_role.eks-kubectl.name}"
+# Route table association with private subnets
+resource "aws_route_table_association" "private" {
+  count          = length(var.subnets_cidr_private)
+  subnet_id      = element(aws_subnet.private.*.id, count.index)
+  route_table_id = aws_route_table.private_rt.id
 }

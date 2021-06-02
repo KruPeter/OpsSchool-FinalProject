@@ -5,7 +5,7 @@ locals {
 resource "aws_instance" "monitoring" {
   ami                    = "ami-07d0cf3af28718ef8"
   instance_type          = "t2.micro"
-  subnet_id              = "${aws_subnet.private.1.id}"
+  subnet_id              = aws_subnet.private.0.id
   key_name               = aws_key_pair.VPC-project-key.key_name
   iam_instance_profile   = aws_iam_instance_profile.consul-join.name
   vpc_security_group_ids = [aws_security_group.monitoring_sg.id, aws_security_group.project_consul.id]
