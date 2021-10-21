@@ -47,6 +47,7 @@ Jenkins Deployment and Configuration:
     Configure jenkins nodes and set credential name as "ubuntu".
 
 To get logon to different EC2's instances in privet subnets:
+
     Using created Bastion Host, you can login into Pricet Subnet's.
     ssh to the EC2 instance using key.pem (ssh -i "key.pem" -F ssh_config ubuntu@<IP>)
 
