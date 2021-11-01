@@ -48,7 +48,7 @@ Jenkins Deployment and Configuration:
 
 To get logon to different EC2's instances in privet subnets:
 
-    Using created Bastion Host, you can login into Pricet Subnet's.
+    Using created Bastion Host, you can login into Privet Subnet's.
     ssh to the EC2 instance using key.pem (ssh -i "key.pem" -F ssh_config ubuntu@<IP>)
 
 To bring everything down:
