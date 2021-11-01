@@ -23,7 +23,7 @@ variable "subnets_cidr_private" {
 }
 
 variable "ip" {
-  default = ""
+  type = string
   description = "my public ip"
 }
 

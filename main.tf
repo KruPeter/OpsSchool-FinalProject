@@ -1,6 +1,6 @@
 # Requirements
 terraform {
-  required_version = ">= 0.12.0"
+  required_version = ">= 0.12"
 }
 
 provider "random" {
@@ -8,7 +8,7 @@ provider "random" {
 }
 
 provider "local" {
-  version = "~> 1.2"
+  version = "~> 1.4"
 }
 
 provider "null" {
